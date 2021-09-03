@@ -1,0 +1,12 @@
+{
+  "name": "afterlife",
+  "version-string": "1.0.0",
+  "description": "Afterlife 2.0 Helper plugin",
+  "homepage": "",
+  "license": "MIT",
+  "dependencies": [
+    "boost-atomic",
+    "boost-stl-interfaces",
+    "spdlog"
+  ]
+}

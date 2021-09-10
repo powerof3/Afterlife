@@ -20,7 +20,12 @@ namespace Afterlife
 			return false;
 		}
 
-	    ++_souls[soulData];
+        const auto addedCount = _souls[soulData] + 1;
+		if (_souls[soulData] > std::numeric_limits<std::uint16_t>::max() - addedCount) {
+			return false;
+		}
+
+		++_souls[soulData];
 
 		return true;
 	}
@@ -37,9 +42,34 @@ namespace Afterlife
 			return false;
 		}
 
+		if (a_count > 0 && (_souls[soulData] > std::numeric_limits<std::uint16_t>::max() - a_count)) {
+			return false;
+		}
+
 	    _souls[soulData] += a_count;
 
 		return true;
+	}
+
+	bool Base::Unregister(const RE::TESNPC* a_npc)
+	{
+		const auto soulData = SoulData{
+			a_npc->GetFormID(),
+			a_npc->IsUnique()
+		};
+
+		Locker locker(_lock);
+
+		if (auto it = _souls.find(soulData); it != _souls.end()) {
+			if (soulData.second || it->second <= 1) {
+				_souls.erase(it);
+			} else {
+				it->second--;
+			}
+			return true;
+		}
+
+		return false;
 	}
 
 	void Base::Clear()
@@ -72,8 +102,12 @@ namespace Afterlife
 		std::uint16_t soulCount = 0;
 
 		for (const auto& [soulData, count] : _souls) {
+			if (count >= std::numeric_limits<std::uint16_t>::max()) {
+				continue;
+			}
+
 			const auto& [formID, unique] = soulData;
-			if (!a_intfc->WriteRecordData(formID)) {
+		    if (!a_intfc->WriteRecordData(formID)) {
 				logger::error("Failed to save soul formID ({:X})", formID);
 				return false;
 			}
@@ -81,11 +115,12 @@ namespace Afterlife
 				logger::error("Failed to save soul unique state ({})", unique);
 				return false;
 			}
-			if (!a_intfc->WriteRecordData(count)) {
+		    if (!a_intfc->WriteRecordData(count)) {
 				logger::error("Failed to save soul count ({})", count);
 				return false;
 			}
-			soulCount += count;
+
+		    soulCount += count;
 		}
 
 		logger::info("{} - {} actors saved", GetType(), soulCount);
@@ -104,26 +139,28 @@ namespace Afterlife
 
 		RE::FormID formID;
 		bool isUnique;
-		std::uint16_t count;
+		std::uint16_t count = 0;
 
 		std::uint16_t soulCount = 0;
 
-	    for (std::size_t i = 0; i < size; i++) {
+		for (std::size_t i = 0; i < size; i++) {
 			a_intfc->ReadRecordData(formID);
 			if (!a_intfc->ResolveFormID(formID, formID)) {
 				logger::error("Failed to resolve formID {}"sv, formID);
 				continue;
 			}
 			a_intfc->ReadRecordData(isUnique);
-			a_intfc->ReadRecordData(count);
-
 			SoulData soulData = { formID, isUnique };
-			if (soulData.second && _souls.count(soulData) > 0) {
+			if (soulData.second && _souls.count(soulData) > 1) {
+				continue;
+			}
+		    a_intfc->ReadRecordData(count);
+			if (count >= std::numeric_limits<std::uint16_t>::max()) {
 				continue;
 			}
 			_souls[soulData] += count;
 
-	        soulCount += count;
+		    soulCount += count;
 		}
 
 		logger::info("{} - {} actors loaded", GetType(), soulCount);
@@ -163,7 +200,7 @@ namespace Afterlife
 	std::uint32_t Base::ClearGenericSouls()
 	{
 		Locker locker(_lock);
-        const auto result = std::erase_if(_souls, [](const auto& data) {
+		const auto result = std::erase_if(_souls, [](const auto& data) {
 			auto const& [soulData, count] = data;
 			return soulData.second == false;
 		});

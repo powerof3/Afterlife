@@ -34,7 +34,7 @@ namespace Afterlife
 				if (name.empty()) {
 					return false;
 				}
-				if (const auto race = a_npc->GetRace(); race && race->GetFormID() == 0x00013746) { //nord race
+				if (const auto race = a_npc->GetRace(); race && race->GetFormID() == 0x00013746) {  //nord race
 					if (std::ranges::find(alreadyPresent, name) != alreadyPresent.end()) {
 						return false;
 					}
@@ -46,13 +46,8 @@ namespace Afterlife
 			const auto sovnMap = Sovngarde::GetSingleton();
 			for (const auto& deadCount : TES->deadCount) {
 				if (deadCount) {
-					if (auto [npc, count] = *deadCount; npc) {
-						if (npc &&
-							count < std::numeric_limits<std::uint16_t>::max() &&
-							is_worthy(npc) &&
-							sovnMap->Register(npc, count)) {
-							soulCount += count;
-						}
+					if (auto [npc, count] = *deadCount; npc && is_worthy(npc) && count < std::numeric_limits<std::uint16_t>::max() && sovnMap->Register(npc, count)) {
+						soulCount += count;
 					}
 				}
 			}
@@ -81,7 +76,7 @@ namespace Afterlife
 
 	inline bool StoreSoul(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESNPC* a_npc, std::uint32_t a_type)
 	{
-		if (!a_npc || a_npc->IsDynamicForm()) { //avoid placeatme'd actors that have dynamic base
+		if (!a_npc || a_npc->IsDynamicForm()) {  //avoid placeatme'd actors that have dynamic base
 			a_vm->TraceStack("NPC is None", a_stackID, Severity::kWarning);
 			return false;
 		}
@@ -100,7 +95,28 @@ namespace Afterlife
 		}
 	}
 
-	inline std::uint32_t ClearGenericSouls(VM*, StackID, RE::StaticFunctionTag*, std::uint32_t a_type)
+	inline bool ClearSoul(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESNPC* a_npc, std::uint32_t a_type)
+	{
+		if (!a_npc || a_npc->IsDynamicForm()) {  //avoid placeatme'd actors that have dynamic base
+			a_vm->TraceStack("NPC is None", a_stackID, Severity::kWarning);
+			return false;
+		}
+
+		if (const std::string name = a_npc->GetName(); name.empty()) {
+			return false;
+		}
+
+		switch (a_type) {
+		case 0:
+			return Sovngarde::GetSingleton()->Unregister(a_npc);
+		case 1:
+			return SoulCairn::GetSingleton()->Unregister(a_npc);
+		default:
+			return false;
+		}
+	}
+
+	inline std::uint32_t ClearAllGenericSouls(VM*, StackID, RE::StaticFunctionTag*, std::uint32_t a_type)
 	{
 		switch (a_type) {
 		case 0:
@@ -112,7 +128,7 @@ namespace Afterlife
 		}
 	}
 
-	inline void ClearStoredSouls(VM*, StackID, RE::StaticFunctionTag*, std::uint32_t a_type)
+	inline void ClearAllSouls(VM*, StackID, RE::StaticFunctionTag*, std::uint32_t a_type)
 	{
 		switch (a_type) {
 		case 0:
@@ -137,8 +153,9 @@ namespace Afterlife
 		BIND(GetPastSouls);
 		BIND(GetStoredSouls);
 		BIND(StoreSoul);
-		BIND(ClearGenericSouls);
-		BIND(ClearStoredSouls);
+		BIND(ClearSoul);
+		BIND(ClearAllGenericSouls);
+		BIND(ClearAllSouls);
 
 		logger::info("Registered functions"sv);
 

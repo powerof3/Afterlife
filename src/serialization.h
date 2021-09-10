@@ -21,6 +21,7 @@ namespace Afterlife
 
 		bool Register(const RE::TESNPC* a_npc);
 		bool Register(const RE::TESNPC* a_npc, std::uint16_t a_count);
+		bool Unregister(const RE::TESNPC* a_npc);
 
 		void Clear();
 		bool Save(SKSE::SerializationInterface* a_intfc, std::uint32_t a_type, std::uint32_t a_version);

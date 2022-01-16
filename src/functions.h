@@ -46,7 +46,8 @@ namespace Afterlife
 			const auto sovnMap = Sovngarde::GetSingleton();
 			for (const auto& deadCount : TES->deadCount) {
 				if (deadCount) {
-					if (auto [npc, count] = *deadCount; npc && is_worthy(npc) && count < std::numeric_limits<std::uint16_t>::max() && sovnMap->Register(npc, count)) {
+					auto& [npc, count] = *deadCount;
+					if (npc && is_worthy(npc) && count < 100 && sovnMap->Register(npc, count)) {
 						soulCount += count;
 					}
 				}

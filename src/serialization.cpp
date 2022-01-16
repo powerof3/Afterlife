@@ -16,12 +16,12 @@ namespace Afterlife
 		};
 
 		Locker locker(_lock);
-		if (soulData.second && _souls.count(soulData) > 0) {
+		if (soulData.second && std::ranges::find_if(_souls, [soulData](const auto& soul) { return soul.first == soulData; }) != _souls.end()) {
 			return false;
 		}
 
-        const auto addedCount = _souls[soulData] + 1;
-		if (_souls[soulData] > std::numeric_limits<std::uint16_t>::max() - addedCount) {
+		const auto addedCount = _souls[soulData] + 1;
+		if (_souls[soulData] > 100 - addedCount) {
 			return false;
 		}
 
@@ -38,15 +38,15 @@ namespace Afterlife
 		};
 
 		Locker locker(_lock);
-		if (soulData.second && _souls.count(soulData) > 0) {
+		if (soulData.second && std::ranges::find_if(_souls, [soulData](const auto& soul) { return soul.first == soulData; }) != _souls.end()) {
 			return false;
 		}
 
-		if (a_count > 0 && (_souls[soulData] > std::numeric_limits<std::uint16_t>::max() - a_count)) {
+		if (a_count > 0 && _souls[soulData] > (100 - a_count)) {
 			return false;
 		}
 
-	    _souls[soulData] += a_count;
+		_souls[soulData] += a_count;
 
 		return true;
 	}
@@ -102,12 +102,12 @@ namespace Afterlife
 		std::uint16_t soulCount = 0;
 
 		for (const auto& [soulData, count] : _souls) {
-			if (count >= std::numeric_limits<std::uint16_t>::max()) {
+			if (count > 100) {
 				continue;
 			}
 
 			const auto& [formID, unique] = soulData;
-		    if (!a_intfc->WriteRecordData(formID)) {
+			if (!a_intfc->WriteRecordData(formID)) {
 				logger::error("Failed to save soul formID ({:X})", formID);
 				return false;
 			}
@@ -115,12 +115,12 @@ namespace Afterlife
 				logger::error("Failed to save soul unique state ({})", unique);
 				return false;
 			}
-		    if (!a_intfc->WriteRecordData(count)) {
+			if (!a_intfc->WriteRecordData(count)) {
 				logger::error("Failed to save soul count ({})", count);
 				return false;
 			}
 
-		    soulCount += count;
+			soulCount += count;
 		}
 
 		logger::info("{} - {} actors saved", GetType(), soulCount);
@@ -154,13 +154,13 @@ namespace Afterlife
 			if (soulData.second && _souls.count(soulData) > 1) {
 				continue;
 			}
-		    a_intfc->ReadRecordData(count);
-			if (count >= std::numeric_limits<std::uint16_t>::max()) {
+			a_intfc->ReadRecordData(count);
+			if (count > 100) {
 				continue;
 			}
 			_souls[soulData] += count;
 
-		    soulCount += count;
+			soulCount += count;
 		}
 
 		logger::info("{} - {} actors loaded", GetType(), soulCount);
@@ -176,7 +176,10 @@ namespace Afterlife
 		for (auto& [soulData, count] : _souls) {
 			const auto& [formID, isUnique] = soulData;
 			if (auto npc = RE::TESForm::LookupByID<RE::TESNPC>(formID); npc) {
-				soulMap[npc] += count;
+				if (isUnique && count > 1) {
+					count = 1;
+				}
+			    soulMap[npc] += count;
 			}
 		}
 

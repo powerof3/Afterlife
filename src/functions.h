@@ -149,7 +149,7 @@ namespace Afterlife
 			return false;
 		}
 
-		const auto obj = "PO3_Afterlife"sv;
+		constexpr auto obj = "PO3_Afterlife"sv;
 
 		BIND(GetPastSouls);
 		BIND(GetStoredSouls);

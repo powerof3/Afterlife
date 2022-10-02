@@ -10,8 +10,12 @@
 #endif
 
 using namespace std::literals;
-
 namespace logger = SKSE::log;
+
+namespace stl
+{
+    using namespace SKSE::stl;
+}
 
 #define DLLEXPORT __declspec(dllexport)
 

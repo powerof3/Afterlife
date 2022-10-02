@@ -1,5 +1,6 @@
 set(headers ${headers}
-	src/functions.h
+	src/Functions.h
+	src/Patches.h
 	src/PCH.h
-	src/serialization.h
+	src/Serialization.h
 )
